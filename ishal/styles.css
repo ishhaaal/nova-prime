@@ -1,0 +1,242 @@
+/* ==========================================================================
+   NOVA // PRIME — PREMIUM CYBER-DARK SYSTEM STYLES
+   ========================================================================== */
+
+/* ── 1. Fonts & Global CSS Variables ────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Share+Tech+Mono&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --emerald: #00e87a;
+  --purple:  #a855f7;
+  --gold:    #f59e0b;
+  --danger:  #f43f5e;
+  --cyan:    #06b6d4;
+  --transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── 2. Custom High-End Scrollbar ────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(4, 7, 18, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(30, 41, 59, 0.8);
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #06b6d4; /* neon-cyan glow on hover */
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+/* ── 3. Ambient Cybernetic Background Glow Overlay ───────────────────────── */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-color: #113f67; /* Deep steel-blue base */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Authentic Noise grain texture for high-end grit */
+.ambient-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.015'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  opacity: 0.8;
+  z-index: 1;
+}
+
+/* Premium drifting cybernetic light orbs */
+.ambient-bg::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse 800px 800px at 15% 15%, rgba(168, 85, 247, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 700px at 80% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 600px at 50% 10%, rgba(0, 232, 122, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 500px 500px at 85% 25%, rgba(244, 63, 94, 0.02) 0%, transparent 60%);
+  animation: orb-drift 24s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+@keyframes orb-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(-30px, 20px) scale(1.06); }
+  100% { transform: translate(15px, -15px) scale(1.02); }
+}
+
+/* Geometric Grid overlay mask */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+}
+
+/* Override body fonts safely */
+body {
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  background: #113f67;
+}
+
+/* ── 4. RIR Range Slider webkit track thumb customization ───────────────── */
+#rir-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, 0.08); /* light translucent slate track */
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  outline: none;
+  cursor: pointer;
+}
+#rir-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7, #7e22ce); /* Purple gradient */
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 2px solid #0f172a; /* slate-900 */
+}
+#rir-range::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.8), 0 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+/* ── 5. Database Connection Status Indicator Pill ────────────────────────── */
+.db-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid #1e293b;
+  background: rgba(15, 23, 42, 0.6);
+  color: #64748b;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.db-indicator .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #64748b;
+  flex-shrink: 0;
+  transition: all var(--transition);
+}
+.db-indicator.connected {
+  border-color: rgba(0, 232, 122, 0.3);
+  color: #00e87a; /* neon-emerald */
+  background: linear-gradient(135deg, rgba(0, 232, 122, 0.08), rgba(0, 232, 122, 0.03));
+}
+.db-indicator.connected .dot {
+  background: #00e87a;
+  box-shadow: 0 0 8px rgba(0, 232, 122, 0.7), 0 0 16px rgba(0, 232, 122, 0.3);
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ── 6. Toast Notifications ──────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: rgba(10, 15, 30, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
+  color: #f1f5f9;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7);
+  transform: translateY(80px);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
+}
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+.toast svg {
+  width: 14px;
+  height: 14px;
+}
+.toast.success {
+  border-color: rgba(0, 232, 122, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 232, 122, 0.1);
+}
+.toast.success svg {
+  color: #00e87a;
+  filter: drop-shadow(0 0 4px rgba(0, 232, 122, 0.4));
+}
+.toast.error {
+  border-color: rgba(244, 63, 94, 0.3);
+  box-shadow: 0 10px 30px rgba(244, 63, 94, 0.1);
+}
+.toast.error svg {
+  color: #f43f5e;
+  filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.4));
+}
+
+/* ── 7. Settings Modal Animation Overrides ───────────────────────────────── */
+#settings-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+#settings-overlay.open #settings-modal {
+  transform: scale(1);
+}
+
+
+/* ── 9. Global Small Font Scaling Overrides ─────────────────────────────── */
+/* Elevate all micro-fonts and small text elements for improved legibility */
+.text-xs {
+  font-size: 13.5px !important;
+}
+.text-sm {
+  font-size: 15.5px !important;
+}
+.text-\[9px\] {
+  font-size: 11.5px !important;
+}
+.text-\[10px\] {
+  font-size: 12.5px !important;
+}
+.text-\[11px\] {
+  font-size: 13.5px !important;
+}
+

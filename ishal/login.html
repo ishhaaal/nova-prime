@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-obsidian">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOVA // PRIME — Sign In</title>
+    <meta name="description" content="Sign in to NOVA // PRIME — your elite workout tracker and progressive overload engine.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Share+Tech+Mono&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Tailwind CSS v3 via Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#113f67',
+                        'slate-card': '#0a0f1d',
+                        'neon-emerald': '#00e87a',
+                        'neon-purple': '#a855f7',
+                        'neon-gold': '#f59e0b',
+                        'neon-cyan': '#06b6d4',
+                        'neon-rose': '#f43f5e',
+                    },
+                    boxShadow: {
+                        '3d-bevel': 'inset 1px 1px 2px rgba(255, 255, 255, 0.08), inset -1px -1px 2px rgba(0, 0, 0, 0.8), 0 4px 20px rgba(0,0,0,0.5)',
+                        'glow-cyan': '0 0 20px rgba(6, 182, 212, 0.25)',
+                        'glow-purple': '0 0 20px rgba(168, 85, 247, 0.25)',
+                        'glow-emerald': '0 0 20px rgba(0, 232, 122, 0.25)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Supabase JS v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* Login-specific animations */
+        @keyframes float-in {
+            0% { opacity: 0; transform: translateY(30px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(6, 182, 212, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+        }
+        @keyframes glow-breathe {
+            0%, 100% { opacity: 0.4; filter: blur(80px); }
+            50% { opacity: 0.7; filter: blur(100px); }
+        }
+        .login-card {
+            animation: float-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .shimmer-text {
+            background: linear-gradient(90deg, #e2e8f0, #06b6d4, #a855f7, #e2e8f0);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 4s linear infinite;
+        }
+        .input-focus-glow:focus {
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15), inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .btn-google:hover {
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .btn-primary-glow {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary-glow::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(135deg, #06b6d4, #a855f7, #06b6d4);
+            border-radius: inherit;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .btn-primary-glow:hover::before {
+            opacity: 1;
+        }
+        /* Floating ambient orbs for login page */
+        .login-orb {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: glow-breathe 6s ease-in-out infinite;
+        }
+        /* Password visibility toggle */
+        .password-toggle {
+            transition: color 0.2s, transform 0.15s;
+        }
+        .password-toggle:hover {
+            color: #06b6d4;
+            transform: scale(1.1);
+        }
+        .password-toggle:active {
+            transform: scale(0.95);
+        }
+        /* Form transition between sign-in and sign-up */
+        .form-panel {
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .form-panel.hidden-panel {
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            position: absolute;
+            inset: 0;
+        }
+        .form-panel.active-panel {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+            position: relative;
+        }
+    </style>
+</head>
+
+<body
+    class="text-slate-200 min-h-screen overflow-x-hidden relative font-sans font-semibold leading-relaxed selection:bg-neon-cyan/30 selection:text-white">
+
+    <!-- Ambient Background Glow Overlay -->
+    <div class="ambient-bg fixed inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true"></div>
+
+    <!-- Extra floating orbs for login atmosphere -->
+    <div class="login-orb w-[500px] h-[500px] bg-cyan-500/10 top-[-10%] left-[-5%] z-[1]" style="animation-delay: 0s;"></div>
+    <div class="login-orb w-[400px] h-[400px] bg-purple-500/10 bottom-[-10%] right-[-5%] z-[1]" style="animation-delay: 2s;"></div>
+    <div class="login-orb w-[300px] h-[300px] bg-emerald-500/5 top-[30%] right-[15%] z-[1]" style="animation-delay: 4s;"></div>
+
+    <!-- Main Login Container -->
+    <div class="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
+        <div class="w-full max-w-md">
+
+            <!-- Logo Header -->
+            <div class="text-center mb-10 login-card" style="animation-delay: 0.1s;">
+                <!-- Glowing Cybernetic Icon -->
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/15 to-purple-500/10 border border-cyan-500/30 shadow-[0_0_40px_rgba(6,182,212,0.15)] mb-5 animate-[pulse_4s_infinite]">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="text-neon-cyan w-8 h-8 filter drop-shadow-[0_0_6px_rgba(6,182,212,0.5)]"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <!-- 1. Crossing Barbells in Background (Strength) -->
+                        <!-- Barbell 1 (Top-Left to Bottom-Right) -->
+                        <line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.5" />
+                        <!-- Barbell 2 (Bottom-Left to Top-Right) -->
+                        <line x1="4" y1="20" x2="20" y2="4" stroke="currentColor" stroke-width="2.5" />
+
+                        <!-- 2. Lion Face (Nemean Lion of Hercules) -->
+                        <!-- Mane Outline / Crest filled with obsidian #113f67 to mask the crossing barbells in the center -->
+                        <path d="M12 4 L16.5 6 L19 11 L17 17 L12 20.5 L7 17 L5 11 L7.5 6 Z" fill="#113f67" stroke="currentColor" stroke-width="1.5" />
+                        
+                        <!-- Geometric Nose & Snout -->
+                        <path d="M12 11 L10 14.5 H14 Z" fill="currentColor" opacity="0.25" stroke="none" />
+                        <path d="M12 11 V14.5" stroke="currentColor" stroke-width="1.5" />
+                        <path d="M10 14.5 C10 16 12 16.5 12 16.5 C12 16.5 14 16 14 14.5" stroke="currentColor" stroke-width="1.5" />
+                        
+                        <!-- Fierce Eyes -->
+                        <path d="M8.5 10.5 L10.5 11.2" stroke="currentColor" stroke-width="2" />
+                        <path d="M15.5 10.5 L13.5 11.2" stroke="currentColor" stroke-width="2" />
+                        
+                        <!-- Forehead Nova Star (Supernova Core) -->
+                        <path d="M12 5.5 L13 7 L14.5 7.5 L13 8 L12 9.5 L11 8 L9.5 7.5 L11 7 Z" fill="currentColor" stroke="none" />
+                    </svg>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-black tracking-widest uppercase mb-1">
+                    <span class="shimmer-text">NOVA</span>
+                    <span class="text-neon-cyan filter drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]"> // </span>
+                    <span class="shimmer-text">PRIME</span>
+                </h1>
+                <p class="font-mono text-[10px] sm:text-[11px] tracking-[0.2em] text-slate-400 font-bold uppercase mt-1.5">
+                    Elevate Beyond Limits
+                </p>
+            </div>
+
+            <!-- Login Card -->
+            <div class="login-card bg-[#0b1a2e]/80 backdrop-blur-2xl border border-slate-700/50 rounded-3xl p-7 sm:p-9 shadow-[0_24px_80px_rgba(0,0,0,0.5)] ring-1 ring-white/5 relative overflow-hidden"
+                style="animation-delay: 0.25s;" id="login-card">
+
+                <!-- Inner bevel highlight -->
+                <div class="absolute inset-[1px] rounded-[23px] pointer-events-none border border-white/5 z-0"></div>
+
+                <!-- Settings Gear Icon for Database Link -->
+                <button id="btn-settings"
+                    class="absolute top-5 right-5 text-slate-500 hover:text-slate-200 transition-all duration-300 z-20 hover:scale-110 active:scale-95"
+                    title="Database Settings" aria-label="Database Settings" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                </button>
+
+                <!-- Status Message Area -->
+                <div id="auth-message" class="hidden mb-5 p-3.5 rounded-xl text-xs font-mono font-bold tracking-wide text-center border relative z-10 transition-all duration-300"></div>
+
+                <!-- ═══ SIGN IN FORM ═══ -->
+                <div id="signin-panel" class="form-panel active-panel relative z-10">
+                    <h2 class="text-lg font-black tracking-wider text-white uppercase mb-1">Welcome Back</h2>
+                    <p class="font-mono text-[9px] sm:text-[10px] text-slate-400 font-semibold tracking-wide mb-7">Sign in to continue your training protocol.</p>
+
+                    <!-- Email Input -->
+                    <div class="mb-4">
+                        <label class="block font-mono text-[10px] sm:text-[11px] font-extrabold tracking-widest text-slate-300 uppercase mb-2" for="signin-email">Email Address</label>
+                        <div class="relative">
+                            <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="20" height="16" x="2" y="4" rx="2"/>
+                                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                                </svg>
+                            </div>
+                            <input id="signin-email" type="email" placeholder="you@example.com"
+                                class="input-focus-glow w-full bg-slate-950/60 border border-slate-700/60 focus:border-cyan-500/50 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all duration-200 font-medium">
+                        </div>
+                    </div>
+
+                    <!-- Password Input -->
+                    <div class="mb-2">
+                        <label class="block font-mono text-[10px] sm:text-[11px] font-extrabold tracking-widest text-slate-300 uppercase mb-2" for="signin-password">Password</label>
+                        <div class="relative">
+                            <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                            </div>
+                            <input id="signin-password" type="password" placeholder="••••••••"
+                                class="input-focus-glow w-full bg-slate-950/60 border border-slate-700/60 focus:border-cyan-500/50 rounded-xl pl-11 pr-12 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all duration-200 font-medium">
+                            <button type="button" class="password-toggle absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500" onclick="togglePasswordVisibility('signin-password', this)" aria-label="Toggle password visibility">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 eye-closed hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                                    <line x1="2" x2="22" y1="2" y2="22"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Forgot Password Link -->
+                    <div class="text-right mb-6">
+                        <button type="button" id="btn-forgot-password"
+                            class="font-mono text-[10px] text-cyan-400/80 hover:text-cyan-300 font-bold tracking-wide transition-colors duration-200">
+                            Forgot password?
+                        </button>
+                    </div>
+
+                    <!-- Sign In Button -->
+                    <button type="button" id="btn-email-signin"
+                        class="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 active:scale-[0.98] text-white py-3.5 rounded-xl text-sm font-bold shadow-[0_4px_20px_rgba(6,182,212,0.25)] transition-all duration-200 mb-5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                            <polyline points="10 17 15 12 10 7"/>
+                            <line x1="15" x2="3" y1="12" y2="12"/>
+                        </svg>
+                        <span>Sign In</span>
+                    </button>
+
+
+                    <!-- Switch to Sign Up -->
+                    <p class="text-center text-xs text-slate-400 font-medium">
+                        Don't have an account?
+                        <button type="button" id="btn-show-signup"
+                            class="text-neon-cyan hover:text-cyan-300 font-bold ml-1 transition-colors duration-200">
+                            Create one
+                        </button>
+                    </p>
+                </div>
+
+                <!-- ═══ SIGN UP FORM ═══ -->
+                <div id="signup-panel" class="form-panel hidden-panel relative z-10">
+                    <h2 class="text-lg font-black tracking-wider text-white uppercase mb-1">Create Account</h2>
+                    <p class="font-mono text-[9px] sm:text-[10px] text-slate-400 font-semibold tracking-wide mb-7">Begin your elite training protocol.</p>
+
+                    <!-- Full Name Input -->
+                    <div class="mb-4">
+                        <label class="block font-mono text-[10px] sm:text-[11px] font-extrabold tracking-widest text-slate-300 uppercase mb-2" for="signup-name">Full Name</label>
+                        <div class="relative">
+                            <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                            <input id="signup-name" type="text" placeholder="John Doe"
+                                class="input-focus-glow w-full bg-slate-950/60 border border-slate-700/60 focus:border-cyan-500/50 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all duration-200 font-medium">
+                        </div>
+                    </div>
+
+                    <!-- Email Input -->
+                    <div class="mb-4">
+                        <label class="block font-mono text-[10px] sm:text-[11px] font-extrabold tracking-widest text-slate-300 uppercase mb-2" for="signup-email">Email Address</label>
+                        <div class="relative">
+                            <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="20" height="16" x="2" y="4" rx="2"/>
+                                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                                </svg>
+                            </div>
+                            <input id="signup-email" type="email" placeholder="you@example.com"
+                                class="input-focus-glow w-full bg-slate-950/60 border border-slate-700/60 focus:border-cyan-500/50 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all duration-200 font-medium">
+                        </div>
+                    </div>
+
+                    <!-- Password Input -->
+                    <div class="mb-6">
+                        <label class="block font-mono text-[10px] sm:text-[11px] font-extrabold tracking-widest text-slate-300 uppercase mb-2" for="signup-password">Password</label>
+                        <div class="relative">
+                            <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                            </div>
+                            <input id="signup-password" type="password" placeholder="Min 6 characters"
+                                class="input-focus-glow w-full bg-slate-950/60 border border-slate-700/60 focus:border-cyan-500/50 rounded-xl pl-11 pr-12 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all duration-200 font-medium">
+                            <button type="button" class="password-toggle absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500" onclick="togglePasswordVisibility('signup-password', this)" aria-label="Toggle password visibility">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 eye-closed hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                                    <line x1="2" x2="22" y1="2" y2="22"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <!-- Password Strength Indicator -->
+                        <div class="flex gap-1.5 mt-2.5" id="password-strength">
+                            <div class="h-1 flex-1 rounded-full bg-slate-700/50 transition-all duration-300" id="str-1"></div>
+                            <div class="h-1 flex-1 rounded-full bg-slate-700/50 transition-all duration-300" id="str-2"></div>
+                            <div class="h-1 flex-1 rounded-full bg-slate-700/50 transition-all duration-300" id="str-3"></div>
+                            <div class="h-1 flex-1 rounded-full bg-slate-700/50 transition-all duration-300" id="str-4"></div>
+                        </div>
+                        <p class="font-mono text-[9px] text-slate-500 mt-1.5 tracking-wide" id="strength-label">Password strength</p>
+                    </div>
+
+                    <!-- Sign Up Button -->
+                    <button type="button" id="btn-email-signup"
+                        class="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-[0.98] text-white py-3.5 rounded-xl text-sm font-bold shadow-[0_4px_20px_rgba(168,85,247,0.25)] transition-all duration-200 mb-5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <line x1="19" x2="19" y1="8" y2="14"/>
+                            <line x1="22" x2="16" y1="11" y2="11"/>
+                        </svg>
+                        <span>Create Account</span>
+                    </button>
+
+
+                    <!-- Switch to Sign In -->
+                    <p class="text-center text-xs text-slate-400 font-medium">
+                        Already have an account?
+                        <button type="button" id="btn-show-signin"
+                            class="text-neon-cyan hover:text-cyan-300 font-bold ml-1 transition-colors duration-200">
+                            Sign in
+                        </button>
+                    </p>
+                </div>
+
+                <!-- ═══ FORGOT PASSWORD FORM ═══ -->
+                <div id="forgot-panel" class="form-panel hidden-panel relative z-10">
+                    <h2 class="text-lg font-black tracking-wider text-white uppercase mb-1">Reset Password</h2>
+                    <p class="font-mono text-[9px] sm:text-[10px] text-slate-400 font-semibold tracking-wide mb-7">Enter your email to receive a reset link.</p>
+
+                    <!-- Email Input -->
+                    <div class="mb-6">
+                        <label class="block font-mono text-[10px] sm:text-[11px] font-extrabold tracking-widest text-slate-300 uppercase mb-2" for="forgot-email">Email Address</label>
+                        <div class="relative">
+                            <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="20" height="16" x="2" y="4" rx="2"/>
+                                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                                </svg>
+                            </div>
+                            <input id="forgot-email" type="email" placeholder="you@example.com"
+                                class="input-focus-glow w-full bg-slate-950/60 border border-slate-700/60 focus:border-cyan-500/50 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all duration-200 font-medium">
+                        </div>
+                    </div>
+
+                    <!-- Send Reset Link -->
+                    <button type="button" id="btn-send-reset"
+                        class="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 active:scale-[0.98] text-white py-3.5 rounded-xl text-sm font-bold shadow-[0_4px_20px_rgba(6,182,212,0.25)] transition-all duration-200 mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="20" height="16" x="2" y="4" rx="2"/>
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                        </svg>
+                        <span>Send Reset Link</span>
+                    </button>
+
+                    <!-- Back to Sign In -->
+                    <p class="text-center text-xs text-slate-400 font-medium">
+                        Remember your password?
+                        <button type="button" id="btn-back-signin"
+                            class="text-neon-cyan hover:text-cyan-300 font-bold ml-1 transition-colors duration-200">
+                            Sign in
+                        </button>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <p class="text-center font-mono text-[9px] text-slate-500/60 tracking-[0.15em] uppercase mt-8 font-semibold">
+                NOVA // PRIME &nbsp;•&nbsp; Built for Elite Adaptation
+            </p>
+        </div>
+    </div>
+
+    <!-- ── SUPABASE SETTINGS MODAL ───────────────────────────────────────── -->
+    <div id="settings-overlay"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300"
+        aria-hidden="true">
+        <div class="bg-[#0b0f19] border border-slate-800/80 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-[0_24px_60px_rgba(0,0,0,0.8)] ring-1 ring-purple-500/10 transform scale-95 transition-all duration-300"
+            id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 class="text-lg font-black tracking-widest uppercase text-slate-200 flex items-center gap-2.5"
+                        id="modal-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-neon-purple" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                            <path d="M2 17l10 5 10-5" />
+                            <path d="M2 12l10 5 10-5" />
+                        </svg>
+                        <span>Supabase Link</span>
+                    </h2>
+                    <p class="font-mono text-[9px] font-bold text-slate-400 mt-1">Connect project keys to sync workouts in real-time.</p>
+                </div>
+                <button id="btn-close-modal"
+                    class="text-slate-500 hover:text-slate-200 bg-slate-900/60 p-2 rounded-xl border border-slate-800 hover:border-slate-700 transition-all active:scale-95 animate-none"
+                    type="button" aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Content Body -->
+            <div class="space-y-6">
+                <!-- Sync status pill -->
+                <div id="db-status-pill"
+                    class="inline-flex items-center gap-2 bg-rose-500/10 border border-rose-500/25 px-3 py-1.5 rounded-lg text-[10px] font-mono tracking-widest uppercase text-rose-400">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-50 animate-pulse"></span>
+                    <span id="db-status-text">Offline Mode</span>
+                </div>
+
+                <!-- Credential Instructions -->
+                <div
+                    class="bg-slate-950/80 border border-slate-800/80 p-4 rounded-2xl flex flex-col gap-3 font-mono text-[9px] font-bold text-slate-300">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="w-5 h-5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center font-bold">1</span>
+                        <span>Go to **app.supabase.com** &gt; Settings &gt; API</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="w-5 h-5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center font-bold">2</span>
+                        <span>Copy **Project URL** and **anon/public API key**</span>
+                    </div>
+                </div>
+
+                <!-- Inputs Fields -->
+                <div class="space-y-4">
+                    <div class="flex flex-col gap-2">
+                        <label
+                            class="font-mono text-[11px] sm:text-xs font-extrabold tracking-widest text-slate-300 uppercase"
+                            for="sb-url-input">Supabase Project URL</label>
+                        <input id="sb-url-input" type="url" placeholder="https://xxxxxxxxxxx.supabase.co"
+                            class="bg-slate-950/80 border border-slate-800 focus:border-neon-purple/50 focus:ring-2 focus:ring-purple-500/10 outline-none rounded-xl px-4 py-3 text-slate-200 placeholder-slate-700 text-xs w-full transition-all">
+                    </div>
+                    <div class="flex flex-col gap-2 relative">
+                        <label
+                            class="font-mono text-[11px] sm:text-xs font-extrabold tracking-widest text-slate-300 uppercase"
+                            for="sb-key-input">Anon / Public API Key</label>
+                        <div class="relative">
+                            <input id="sb-key-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+                                class="bg-slate-950/80 border border-slate-800 focus:border-neon-purple/50 focus:ring-2 focus:ring-purple-500/10 outline-none rounded-xl pl-4 pr-16 py-3 text-slate-200 placeholder-slate-700 text-xs w-full transition-all">
+                            <button id="btn-toggle-key"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[9px] text-slate-500 hover:text-slate-300 px-2 py-1 rounded transition-all"
+                                type="button">Show</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions buttons -->
+                <div class="flex gap-3 pt-2">
+                    <button id="btn-save-connection"
+                        class="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white py-3 px-4 rounded-xl text-xs font-bold active:scale-95 shadow-[0_4px_16px_rgba(168,85,247,0.3)] transition-all duration-200"
+                        type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                        <span>Connect & Save</span>
+                    </button>
+                    <button id="btn-disconnect"
+                        class="bg-slate-900/60 hover:bg-rose-600 hover:text-white border border-slate-800 hover:border-rose-600 text-slate-400 py-3 px-4 rounded-xl text-xs font-bold active:scale-95 transition-all duration-200"
+                        type="button">
+                        Reset Default
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════════
+        // NOVA // PRIME — Authentication Controller
+        // ═══════════════════════════════════════════════════════════════════
+
+        let supabaseClient = null;
+
+        // Initialize Supabase client from localStorage credentials or default credentials
+        // ── Supabase Configuration (hardcoded project credentials) ────────
+        const SUPABASE_URL = 'https://crxbdmroqzfsulinxtwd.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_xyKWTa-0TlLBdKzGydOhNg_USHlMbFh';
+
+        function initSupabase() {
+            if (supabaseClient) return true;
+            if (typeof supabase === 'undefined') return false;
+
+            const url = localStorage.getItem('sb_url') || SUPABASE_URL;
+            const key = localStorage.getItem('sb_key') || SUPABASE_ANON_KEY;
+
+            supabaseClient = supabase.createClient(url, key);
+
+            // Persist to localStorage so the main app can use them too
+            if (!localStorage.getItem('sb_url')) localStorage.setItem('sb_url', url);
+            if (!localStorage.getItem('sb_key')) localStorage.setItem('sb_key', key);
+            return true;
+        }
+
+        // Auto-initialize on page load
+        initSupabase();
+
+        // ── Panel Switching ──────────────────────────────────────────────
+        const signinPanel = document.getElementById('signin-panel');
+        const signupPanel = document.getElementById('signup-panel');
+        const forgotPanel = document.getElementById('forgot-panel');
+
+        function showPanel(panelToShow) {
+            [signinPanel, signupPanel, forgotPanel].forEach(p => {
+                p.classList.remove('active-panel');
+                p.classList.add('hidden-panel');
+            });
+            panelToShow.classList.remove('hidden-panel');
+            panelToShow.classList.add('active-panel');
+            clearMessage();
+        }
+
+        document.getElementById('btn-show-signup').addEventListener('click', () => showPanel(signupPanel));
+        document.getElementById('btn-show-signin').addEventListener('click', () => showPanel(signinPanel));
+        document.getElementById('btn-forgot-password').addEventListener('click', () => showPanel(forgotPanel));
+        document.getElementById('btn-back-signin').addEventListener('click', () => showPanel(signinPanel));
+
+        // ── Password Visibility Toggle ───────────────────────────────────
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const eyeOpen = btn.querySelector('.eye-open');
+            const eyeClosed = btn.querySelector('.eye-closed');
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeOpen.classList.add('hidden');
+                eyeClosed.classList.remove('hidden');
+            } else {
+                input.type = 'password';
+                eyeOpen.classList.remove('hidden');
+                eyeClosed.classList.add('hidden');
+            }
+        }
+
+        // ── Password Strength Meter ──────────────────────────────────────
+        const signupPasswordInput = document.getElementById('signup-password');
+        const strengthBars = [
+            document.getElementById('str-1'),
+            document.getElementById('str-2'),
+            document.getElementById('str-3'),
+            document.getElementById('str-4')
+        ];
+        const strengthLabel = document.getElementById('strength-label');
+
+        signupPasswordInput.addEventListener('input', () => {
+            const val = signupPasswordInput.value;
+            let score = 0;
+            if (val.length >= 6) score++;
+            if (val.length >= 10) score++;
+            if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+            if (/[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val)) score++;
+
+            const colors = ['bg-rose-500', 'bg-amber-500', 'bg-cyan-500', 'bg-neon-emerald'];
+            const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+
+            strengthBars.forEach((bar, i) => {
+                bar.className = `h-1 flex-1 rounded-full transition-all duration-300 ${i < score ? colors[Math.min(score - 1, 3)] : 'bg-slate-700/50'}`;
+            });
+            strengthLabel.textContent = val.length === 0 ? 'Password strength' : labels[Math.min(score - 1, 3)] || 'Too short';
+        });
+
+        // ── Status Messages ──────────────────────────────────────────────
+        const authMessage = document.getElementById('auth-message');
+
+        function showMessage(text, type = 'error') {
+            authMessage.classList.remove('hidden');
+            authMessage.textContent = text;
+            if (type === 'error') {
+                authMessage.className = 'mb-5 p-3.5 rounded-xl text-xs font-mono font-bold tracking-wide text-center border relative z-10 transition-all duration-300 bg-rose-500/10 border-rose-500/25 text-rose-400';
+            } else {
+                authMessage.className = 'mb-5 p-3.5 rounded-xl text-xs font-mono font-bold tracking-wide text-center border relative z-10 transition-all duration-300 bg-emerald-500/10 border-emerald-500/25 text-emerald-400';
+            }
+        }
+
+        function clearMessage() {
+            authMessage.classList.add('hidden');
+            authMessage.textContent = '';
+        }
+
+        // ── Loading State ────────────────────────────────────────────────
+        function setLoading(btn, loading) {
+            if (loading) {
+                btn.dataset.originalText = btn.innerHTML;
+                btn.innerHTML = `
+                    <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span>Processing...</span>`;
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
+            } else {
+                btn.innerHTML = btn.dataset.originalText;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
+
+        // ── Auth Actions ─────────────────────────────────────────────────
+
+        // Email Sign In
+        document.getElementById('btn-email-signin').addEventListener('click', async () => {
+            const email = document.getElementById('signin-email').value.trim();
+            const password = document.getElementById('signin-password').value;
+            const btn = document.getElementById('btn-email-signin');
+
+            if (!email || !password) {
+                showMessage('Please enter both email and password.');
+                return;
+            }
+
+            if (!initSupabase()) {
+                showMessage('Supabase not configured. Connect your project in Settings first.');
+                return;
+            }
+
+            setLoading(btn, true);
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                showMessage('Signed in successfully! Redirecting...', 'success');
+                setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+            } catch (err) {
+                showMessage(err.message || 'Sign in failed. Please check your credentials.');
+            } finally {
+                setLoading(btn, false);
+            }
+        });
+
+        // Email Sign Up
+        document.getElementById('btn-email-signup').addEventListener('click', async () => {
+            const name = document.getElementById('signup-name').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-password').value;
+            const btn = document.getElementById('btn-email-signup');
+
+            if (!email || !password) {
+                showMessage('Please fill in all required fields.');
+                return;
+            }
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters.');
+                return;
+            }
+
+            if (!initSupabase()) {
+                showMessage('Supabase not configured. Connect your project in Settings first.');
+                return;
+            }
+
+            setLoading(btn, true);
+            try {
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email,
+                    password,
+                    options: { data: { full_name: name } }
+                });
+                if (error) throw error;
+                showMessage('Account created! Check your email to confirm, then sign in.', 'success');
+                setTimeout(() => showPanel(signinPanel), 3000);
+            } catch (err) {
+                showMessage(err.message || 'Sign up failed. Please try again.');
+            } finally {
+                setLoading(btn, false);
+            }
+        });
+
+        // Google Sign In (both buttons use same flow)
+        async function handleGoogleAuth() {
+            if (!initSupabase()) {
+                showMessage('Supabase not configured. Connect your project in Settings first.');
+                return;
+            }
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: window.location.origin + '/index.html' }
+                });
+                if (error) throw error;
+            } catch (err) {
+                showMessage(err.message || 'Google sign-in failed. Please try again.');
+            }
+        }
+
+        document.getElementById('btn-google-signin').addEventListener('click', handleGoogleAuth);
+        document.getElementById('btn-google-signup').addEventListener('click', handleGoogleAuth);
+
+        // Forgot Password
+        document.getElementById('btn-send-reset').addEventListener('click', async () => {
+            const email = document.getElementById('forgot-email').value.trim();
+            const btn = document.getElementById('btn-send-reset');
+
+            if (!email) {
+                showMessage('Please enter your email address.');
+                return;
+            }
+
+            if (!initSupabase()) {
+                showMessage('Supabase not configured. Connect your project in Settings first.');
+                return;
+            }
+
+            setLoading(btn, true);
+            try {
+                const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/login.html'
+                });
+                if (error) throw error;
+                showMessage('Password reset link sent! Check your inbox.', 'success');
+            } catch (err) {
+                showMessage(err.message || 'Failed to send reset link.');
+            } finally {
+                setLoading(btn, false);
+            }
+        });
+
+        // ── Enter Key Support ────────────────────────────────────────────
+        document.getElementById('signin-password').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('btn-email-signin').click();
+        });
+        document.getElementById('signin-email').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('signin-password').focus();
+        });
+        document.getElementById('signup-password').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('btn-email-signup').click();
+        });
+        document.getElementById('forgot-email').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('btn-send-reset').click();
+        });
+
+        // ── Auto-redirect if already authenticated ───────────────────────
+        (async function checkAuth() {
+            if (initSupabase()) {
+                try {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session) {
+                        window.location.href = 'index.html';
+                    }
+                } catch (e) {
+                    // Not authenticated, stay on login page
+                }
+            }
+        })();
+
+        // ── Database Settings Modal Controller ───────────────────────────
+        const settingsOverlay = document.getElementById('settings-overlay');
+        const settingsModal   = document.getElementById('settings-modal');
+        const btnSettings     = document.getElementById('btn-settings');
+        const btnCloseModal   = document.getElementById('btn-close-modal');
+        const btnToggleKey    = document.getElementById('btn-toggle-key');
+        const btnSaveConn     = document.getElementById('btn-save-connection');
+        const btnDisconnect   = document.getElementById('btn-disconnect');
+        const sbUrlInput       = document.getElementById('sb-url-input');
+        const sbKeyInput       = document.getElementById('sb-key-input');
+        const dbStatusPill     = document.getElementById('db-status-pill');
+        const dbStatusText     = document.getElementById('db-status-text');
+
+        function setModalStatus(online, text) {
+            const baseClasses = "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-mono tracking-widest uppercase border";
+            if (online) {
+                dbStatusPill.className = `${baseClasses} bg-emerald-500/10 border-emerald-500/25 text-emerald-400`;
+                const dot = dbStatusPill.querySelector('span');
+                if (dot) dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+            } else {
+                dbStatusPill.className = `${baseClasses} bg-rose-500/10 border-rose-500/25 text-rose-400`;
+                const dot = dbStatusPill.querySelector('span');
+                if (dot) dot.className = "w-1.5 h-1.5 rounded-full bg-rose-50 animate-pulse";
+            }
+            dbStatusText.textContent = text;
+        }
+
+        async function tryAutoTest() {
+            const url = localStorage.getItem('sb_url') || SUPABASE_URL;
+            const key = localStorage.getItem('sb_key') || SUPABASE_ANON_KEY;
+            
+            sbUrlInput.value = url;
+            sbKeyInput.value = key;
+
+            if (typeof supabase === 'undefined') {
+                setModalStatus(false, 'Supabase SDK missing');
+                return;
+            }
+
+            try {
+                const testClient = supabase.createClient(url, key);
+                const { error } = await testClient.from('workouts').select('id').limit(1);
+                if (error) throw error;
+                setModalStatus(true, 'Connected — tables verified ✓');
+            } catch (e) {
+                setModalStatus(false, 'Not Connected');
+            }
+        }
+
+        function openModal() {
+            settingsOverlay.classList.remove('pointer-events-none');
+            settingsOverlay.classList.add('opacity-100');
+            settingsModal.classList.remove('scale-95');
+            settingsModal.classList.add('scale-100');
+            tryAutoTest();
+        }
+
+        function closeModal() {
+            settingsOverlay.classList.add('pointer-events-none');
+            settingsOverlay.classList.remove('opacity-100');
+            settingsModal.classList.add('scale-95');
+            settingsModal.classList.remove('scale-100');
+        }
+
+        // Toggle Key Visibility
+        btnToggleKey.addEventListener('click', () => {
+            if (sbKeyInput.type === 'password') {
+                sbKeyInput.type = 'text';
+                btnToggleKey.textContent = 'Hide';
+            } else {
+                sbKeyInput.type = 'password';
+                btnToggleKey.textContent = 'Show';
+            }
+        });
+
+        // Event listener hooks
+        if (btnSettings) btnSettings.addEventListener('click', openModal);
+        if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
+        settingsOverlay.addEventListener('click', e => { if (e.target === settingsOverlay) closeModal(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+        // Save & Test connection
+        btnSaveConn.addEventListener('click', async () => {
+            const url = sbUrlInput.value.trim();
+            const key = sbKeyInput.value.trim();
+            if (!url || !key) {
+                alert('Please enter both URL and API key.');
+                return;
+            }
+
+            btnSaveConn.disabled = true;
+            btnSaveConn.textContent = 'Connecting…';
+
+            try {
+                if (typeof supabase === 'undefined') throw new Error('Supabase SDK is not loaded.');
+                const testClient = supabase.createClient(url, key);
+                const { error } = await testClient.from('workouts').select('id').limit(1);
+                if (error) throw error;
+
+                // Connection successful! Save to localStorage
+                localStorage.setItem('sb_url', url);
+                localStorage.setItem('sb_key', key);
+                supabaseClient = testClient; // update active client
+
+                setModalStatus(true, 'Connected — tables verified ✓');
+                alert('Connected to Supabase successfully!');
+                closeModal();
+            } catch (e) {
+                setModalStatus(false, 'Connection failed');
+                alert('Connection failed: ' + (e.message || e));
+            } finally {
+                btnSaveConn.disabled = false;
+                btnSaveConn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <span>Connect & Save</span>`;
+            }
+        });
+
+        // Reset to Default
+        btnDisconnect.addEventListener('click', async () => {
+            if (!confirm('Reset back to default database credentials?')) return;
+            
+            localStorage.setItem('sb_url', SUPABASE_URL);
+            localStorage.setItem('sb_key', SUPABASE_ANON_KEY);
+            
+            sbUrlInput.value = SUPABASE_URL;
+            sbKeyInput.value = SUPABASE_ANON_KEY;
+            
+            if (typeof supabase !== 'undefined') {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+
+            tryAutoTest();
+            alert('Reset to default database credentials.');
+        });
+    </script>
+</body>
+
+</html>
